@@ -15,7 +15,7 @@ const client = new Client({
   ],
 });
 
-const regex = /(?=.*(ios[^\s]*|iphone[^\s]*))(?=.*(hogy[^\s]*|letöltés[^\s]*))/i;
+const regex = /(?=.*(ios[^\s]*|iphone[^\s]*|tutorial[^\s]*))(?=.*(hogy[^\s]*|letöltés[^\s]*))/i;
 const serverCooldowns = new Map();
 const cooldownTime = 60 * 1000;
 
