@@ -6,6 +6,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require("discord.js");
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -14,8 +15,9 @@ const client = new Client({
   ],
 });
 
-const regex =
-  /(?=.*(ios[^\s]*|iphone[^\s]*))(?=.*(hogy[^\s]*|letöltés[^\s]*))/i;
+const regex = /(?=.*(ios[^\s]*|iphone[^\s]*))(?=.*(hogy[^\s]*|letöltés[^\s]*))/i;
+const serverCooldowns = new Map();
+const cooldownTime = 60 * 1000;
 
 client.once("ready", () => {
   console.log("kész");
@@ -23,6 +25,16 @@ client.once("ready", () => {
 
 client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
+
+  const guildId = message.guild.id;
+  const now = Date.now();
+
+  if (serverCooldowns.has(guildId)) {
+    const lastMessageTime = serverCooldowns.get(guildId);
+    if (now - lastMessageTime < cooldownTime) return;
+  }
+
+  serverCooldowns.set(guildId, now);
 
   if (regex.test(message.content)) {
     const embed = new EmbedBuilder()
