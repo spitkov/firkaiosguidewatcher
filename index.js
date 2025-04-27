@@ -10,6 +10,8 @@ const {
   SlashCommandBuilder,
 } = require("discord.js");
 const dotenv = require("dotenv");
+const fs = require("fs");
+const path = require("path");
 
 dotenv.config();
 
@@ -37,7 +39,38 @@ const regex = /(?=.*(ios[^\s]*|iphone[^\s]*|tutorial[^\s]*))(?=.*(hogy[^\s]*|let
 const serverCooldowns = new Map();
 const cooldownTime = 60 * 1000;
 
-function createIosGuideResponse() {
+const countersFile = path.join(__dirname, "counters.json");
+let serverCounters = {};
+
+try {
+  if (fs.existsSync(countersFile)) {
+    const data = fs.readFileSync(countersFile, 'utf8');
+    serverCounters = JSON.parse(data);
+  }
+} catch (error) {
+  console.error("Error loading counter data:", error);
+}
+
+function saveCounters() {
+  try {
+    fs.writeFileSync(countersFile, JSON.stringify(serverCounters, null, 2));
+  } catch (error) {
+    console.error("Error saving counter data:", error);
+  }
+}
+
+function incrementCounter(guildId) {
+  if (!serverCounters[guildId]) {
+    serverCounters[guildId] = 0;
+  }
+  serverCounters[guildId]++;
+  saveCounters();
+  return serverCounters[guildId];
+}
+
+function createIosGuideResponse(guildId) {
+  const count = guildId ? serverCounters[guildId] || 0 : 0;
+  
   const embed = new EmbedBuilder()
     .setColor("#121212")
     .setTitle("Firka iOS Sideload Guide")
@@ -45,7 +78,7 @@ function createIosGuideResponse() {
       "Itt van a guide: https://github.com/spitkov/app-legacy/blob/patch-3/ipa-sideloading.md\nTovábbi információk: <#1365805545478426754>"
     )
     .setFooter({
-      text: "Firka iOS Guide Autoreplyer",
+      text: `Firka iOS Guide Autoreplyer | Triggered ${count} times in this server`,
       iconURL: "https://files.catbox.moe/4uchq0.gif",
     })
     .setTimestamp();
@@ -91,7 +124,9 @@ client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
 
   if (interaction.commandName === 'iosguide') {
-    await interaction.reply(createIosGuideResponse());
+    const guildId = interaction.guildId;
+    incrementCounter(guildId);
+    await interaction.reply(createIosGuideResponse(guildId));
   }
 });
 
@@ -109,7 +144,8 @@ client.on("messageCreate", async (message) => {
   serverCooldowns.set(guildId, now);
 
   if (regex.test(message.content)) {
-    await message.reply(createIosGuideResponse());
+    incrementCounter(guildId);
+    await message.reply(createIosGuideResponse(guildId));
   }
 });
 
