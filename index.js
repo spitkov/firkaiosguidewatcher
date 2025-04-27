@@ -106,9 +106,9 @@ function createIosGuideResponse(guildId) {
 async function isAskingAboutIosGuide(message) {
   const lowerMessage = message.toLowerCase();
   
-  const hasFirka = lowerMessage.includes('firka');
-  const hasIos = lowerMessage.includes('ios');
-  const hasIphone = lowerMessage.includes('iphone');
+  const hasFirka = /firk/i.test(lowerMessage);
+  const hasIos = /ios/i.test(lowerMessage);
+  const hasIphone = /iphon/i.test(lowerMessage);
   const hasBasicKeywords = hasFirka && (hasIos || hasIphone);
   
   console.log(`[KEYWORD CHECK] Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
@@ -117,6 +117,13 @@ async function isAskingAboutIosGuide(message) {
   
   if (!hasBasicKeywords) {
     console.log(`[DECISION] Skipping - basic keywords not found`);
+    return false;
+  }
+  
+  // Quick check if the message is just sharing a link
+  const containsUrl = /(https?:\/\/[^\s]+)/g.test(message);
+  if (containsUrl && message.length < 100) {
+    console.log(`[DECISION] Skipping - message appears to be just sharing a link`);
     return false;
   }
   
@@ -129,11 +136,11 @@ async function isAskingAboutIosGuide(message) {
         messages: [
           {
             role: "system",
-            content: "You are a classifier that determines if a message is asking about installing, downloading, or sideloading the Firka app on iOS devices. You only respond with 'true' or 'false'."
+            content: "You are a classifier that determines if someone is ASKING FOR HELP about installing, downloading, or sideloading the Firka app on iOS devices. Only respond with 'true' if the message is asking a question or requesting help. Respond with 'false' for statements, link sharing, or mentions that aren't explicitly asking for assistance. Your response must be strictly 'true' or 'false' only."
           },
           {
             role: "user",
-            content: `Is this message asking about installing, downloading, or sideloading the Firka app on iOS or iPhone? Message: "${message}". Respond only with "true" or "false".`
+            content: `Analyze this message and determine if the person is ASKING a question or seeking help about how to install, download, or sideload the Firka app on iOS/iPhone. Respond with 'false' if they are just sharing information or links rather than asking for help.\n\nMessage: "${message}"\n\nIs this person asking for help with Firka on iOS? (true/false)`
           }
         ],
         temperature: 0
