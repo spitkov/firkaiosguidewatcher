@@ -41,7 +41,7 @@ client.on("messageCreate", async (message) => {
       .setColor("#121212")
       .setTitle("Firka iOS Sideload Guide")
       .setDescription(
-        "Itt van a guide: https://github.com/QwIT-Development/app-legacy/blob/master/ipa-sideloading.md\nTovábbi információk: <#1365805545478426754>"
+        "Itt van a guide: https://github.com/spitkov/app-legacy/blob/patch-3/ipa-sideloading.md\nTovábbi információk: <#1365805545478426754>"
       )
       .setFooter({
         text: "Firka iOS Guide Autoreplyer",
@@ -54,7 +54,7 @@ client.on("messageCreate", async (message) => {
         .setLabel("📚 Megnyitás")
         .setStyle(ButtonStyle.Link)
         .setURL(
-          "https://github.com/QwIT-Development/app-legacy/blob/master/ipa-sideloading.md"
+          "https://github.com/spitkov/app-legacy/blob/patch-3/ipa-sideloading.md"
         )
     );
 
