@@ -75,7 +75,7 @@ function createIosGuideResponse(guildId) {
     .setColor("#121212")
     .setTitle("Firka iOS Sideload Guide")
     .setDescription(
-      "Itt van a guide: https://github.com/spitkov/app-legacy/blob/patch-3/ipa-sideloading.md\nTovábbi információk: <#1365805545478426754>"
+      "Itt van a guide: https://docs.qwit.org/Firka/ipa_telepites.html\nTovábbi információk: <#1365805545478426754>"
     )
     .setFooter({
       text: `Firka iOS Guide Autoreplyer | Triggered ${count} times in this server`,
@@ -88,7 +88,7 @@ function createIosGuideResponse(guildId) {
       .setLabel("📚 Megnyitás")
       .setStyle(ButtonStyle.Link)
       .setURL(
-        "https://github.com/spitkov/app-legacy/blob/patch-3/ipa-sideloading.md"
+        "https://docs.qwit.org/Firka/ipa_telepites.html"
       )
   );
 
