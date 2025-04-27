@@ -12,6 +12,7 @@ const {
 const dotenv = require("dotenv");
 const fs = require("fs");
 const path = require("path");
+const axios = require("axios");
 
 dotenv.config();
 
@@ -27,6 +28,14 @@ if (typeof token !== 'string' || token.trim() === '') {
   process.exit(1);
 }
 
+if (!process.env.GROQ_API_KEY) {
+  console.error("Missing GROQ_API_KEY environment variable");
+  console.error("Add GROQ_API_KEY=your_api_key to .env file");
+  process.exit(1);
+}
+
+const groqApiKey = process.env.GROQ_API_KEY;
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -35,7 +44,6 @@ const client = new Client({
   ],
 });
 
-const regex = /(?=.*(?:firk[aá].*|ios.*|iphone.*))(?=.*(?:hogy|.*t[oö]lt.*|telep[ií]t))/i;
 const serverCooldowns = new Map();
 const cooldownTime = 60 * 1000;
 
@@ -48,14 +56,14 @@ try {
     serverCounters = JSON.parse(data);
   }
 } catch (error) {
-  console.error("Error loading counter data:", error);
+  console.error(`[ERROR] Error loading counter data: ${error.message}`);
 }
 
 function saveCounters() {
   try {
     fs.writeFileSync(countersFile, JSON.stringify(serverCounters, null, 2));
   } catch (error) {
-    console.error("Error saving counter data:", error);
+    console.error(`[ERROR] Error saving counter data: ${error.message}`);
   }
 }
 
@@ -95,6 +103,60 @@ function createIosGuideResponse(guildId) {
   return { embeds: [embed], components: [row] };
 }
 
+async function isAskingAboutIosGuide(message) {
+  const lowerMessage = message.toLowerCase();
+  
+  const hasFirka = lowerMessage.includes('firka');
+  const hasIos = lowerMessage.includes('ios');
+  const hasIphone = lowerMessage.includes('iphone');
+  const hasBasicKeywords = hasFirka && (hasIos || hasIphone);
+  
+  console.log(`[KEYWORD CHECK] Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
+  console.log(`[KEYWORD CHECK] Contains firka: ${hasFirka}, ios: ${hasIos}, iphone: ${hasIphone}`);
+  console.log(`[KEYWORD CHECK] Passes basic keywords check: ${hasBasicKeywords}`);
+  
+  if (!hasBasicKeywords) {
+    console.log(`[DECISION] Skipping - basic keywords not found`);
+    return false;
+  }
+  
+  console.log(`[AI CHECK] Keywords found, using AI to validate`);
+  try {
+    const response = await axios.post(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        model: "llama3-70b-8192",
+        messages: [
+          {
+            role: "system",
+            content: "You are a classifier that determines if a message is asking about installing, downloading, or sideloading the Firka app on iOS devices. You only respond with 'true' or 'false'."
+          },
+          {
+            role: "user",
+            content: `Is this message asking about installing, downloading, or sideloading the Firka app on iOS or iPhone? Message: "${message}". Respond only with "true" or "false".`
+          }
+        ],
+        temperature: 0
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${groqApiKey}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    const result = response.data.choices[0].message.content.trim().toLowerCase();
+    console.log(`[AI RESPONSE] For message: "${message.substring(0, 30)}..." AI returned: ${result}`);
+    console.log(`[DECISION] ${result === 'true' ? 'Sending guide' : 'Not sending guide'} based on AI response`);
+    return result === 'true';
+  } catch (error) {
+    console.error(`[ERROR] Error calling Groq API: ${error.message}`);
+    console.log(`[FALLBACK] Using keyword match result: ${hasBasicKeywords}`);
+    return hasBasicKeywords;
+  }
+}
+
 const commands = [
   new SlashCommandBuilder()
     .setName('iosguide')
@@ -131,21 +193,34 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on("messageCreate", async (message) => {
-  if (message.author.bot) return;
+  if (message.author.bot) {
+    console.log(`[MESSAGE] Ignored bot message from ${message.author.tag}`);
+    return;
+  }
+
+  console.log(`[MESSAGE] User ${message.author.tag} in ${message.guild.name} (${message.guild.id}): "${message.content.substring(0, 50)}${message.content.length > 50 ? '...' : ''}"`);
 
   const guildId = message.guild.id;
   const now = Date.now();
 
   if (serverCooldowns.has(guildId)) {
     const lastMessageTime = serverCooldowns.get(guildId);
-    if (now - lastMessageTime < cooldownTime) return;
+    if (now - lastMessageTime < cooldownTime) {
+      console.log(`[COOLDOWN] Server ${message.guild.name} (${guildId}) is on cooldown. Skipping.`);
+      return;
+    }
   }
 
-  serverCooldowns.set(guildId, now);
-
-  if (regex.test(message.content)) {
+  console.log(`[PROCESSING] Checking if message is relevant...`);
+  const isRelevant = await isAskingAboutIosGuide(message.content);
+  
+  if (isRelevant) {
+    console.log(`[ACTION] Sending iOS guide to ${message.author.tag} in ${message.guild.name}`);
+    serverCooldowns.set(guildId, now);
     incrementCounter(guildId);
     await message.reply(createIosGuideResponse(guildId));
+  } else {
+    console.log(`[ACTION] Not sending guide - message not relevant`);
   }
 });
 
