@@ -109,10 +109,14 @@ async function isAskingAboutIosGuide(message) {
   const hasFirka = /firk/i.test(lowerMessage);
   const hasIos = /ios/i.test(lowerMessage);
   const hasIphone = /iphon/i.test(lowerMessage);
-  const hasBasicKeywords = hasFirka && (hasIos || hasIphone);
+  const hasDownloadKeywords = /let[oö]lt/i.test(lowerMessage) || /telep[ií]t/i.test(lowerMessage);
+  
+  const hasBasicKeywords = 
+    (hasFirka && (hasIos || hasIphone)) || 
+    ((hasIos || hasIphone) && hasDownloadKeywords);
   
   console.log(`[KEYWORD CHECK] Message: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`);
-  console.log(`[KEYWORD CHECK] Contains firka: ${hasFirka}, ios: ${hasIos}, iphone: ${hasIphone}`);
+  console.log(`[KEYWORD CHECK] Contains firka: ${hasFirka}, ios: ${hasIos}, iphone: ${hasIphone}, download terms: ${hasDownloadKeywords}`);
   console.log(`[KEYWORD CHECK] Passes basic keywords check: ${hasBasicKeywords}`);
   
   if (!hasBasicKeywords) {
